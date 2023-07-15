@@ -5,11 +5,12 @@
 
 void login (void);
 void registration(void);
-void user_log_in(char username[40]);
+void user_log_in(char *username, char *password);
 void to_rent_car(void);
 void current_auto(void);
-void display_user_data(char username[40]);
-
+void display_user_data(char *username,char *password);
+FILE *open_user_data_file(const char *filename, const char *mode);
+int find_user(char *username, char *password, FILE *user_data);
 
 struct login
 {
@@ -31,45 +32,67 @@ int main (){
     else if (option == 2){
         login ();
     }
-    
+    return 0;
+
 } 
 
+FILE *open_user_data_file(const char *filename, const char *mode) {
+    FILE *user_data = fopen(filename, mode);
+    if (user_data == NULL) {
+        printf("Error opening file: %s\n", filename);
+        exit(1);
+    }
+    return user_data;
+}
+
+int find_user(char *username, char *password, FILE *user_data){
+    struct login l;
+
+        while (fread (&l, sizeof(l), 1, user_data)){
+        if (strcmp(username, l.username) == 0 && strcmp(password, l.password) == 0){
+            
+            return 1;
+        }
+    }
+    return 0;
+}
+
 void registration (void){
-    FILE *user_data = fopen("user_data.txt", "a");
-    if (user_data == NULL){
+    FILE *user_data = open_user_data_file("user_data.txt", "a");
+            if (user_data == NULL){
         printf("Error opening file\n");
         exit(1);
         }
 
-    struct login j;
-    fgets(j.fname, sizeof(j.fname), stdin);    
+    struct login l;
+    fgets(l.fname, sizeof(l.fname), stdin);    
 
     int x = 0;
     while (x != 9){
     printf("Welcome to the car rental service. To beggin using this app, you need to give some details\n Please, enter your First Name: \n");
-    fgets(j.fname, sizeof(j.fname), stdin);    
+    fgets(l.fname, sizeof(l.fname), stdin);    
     printf("And now, Please enter your Surname\n");
-    fgets(j.lname, sizeof(j.lname), stdin);
+    fgets(l.lname, sizeof(l.lname), stdin);
 
     printf("Now we need your passport id number\n");
-    fgets(j.passport_id_number, sizeof(j.passport_id_number), stdin);
+    fgets(l.passport_id_number, sizeof(l.passport_id_number), stdin);
 
     printf("Now enter your IBAN\n");
-    fgets(j.IBAN, sizeof(j.IBAN), stdin);    
+    fgets(l.IBAN, sizeof(l.IBAN), stdin);    
 
     printf("Now enter username\n");
-    fgets(j.username, sizeof(j.username), stdin);    
+    fgets(l.username, sizeof(l.username), stdin);    
 
     printf("Enter your password\n");
-    fgets(j.password, sizeof(j.password), stdin);    
+    fgets(l.password, sizeof(l.password), stdin);    
 
-    if (strcmp(j.fname, "\n") == 0 || strcmp(j.lname, "\n") == 0 || strcmp(j.passport_id_number, "\n") == 0 || strcmp(j.IBAN, "\n") == 0 || strcmp(j.username, "\n") == 0 || strcmp(j.password, "\n") == 0) 
+    if (strcmp(l.fname, "\n") == 0 || strcmp(l.lname, "\n") == 0 || strcmp(l.passport_id_number, "\n") == 0 || strcmp(l.IBAN, "\n") == 0 || strcmp(l.username, "\n") == 0 || strcmp(l.password, "\n") == 0) 
     {
         printf("There is a mistake. Looks like you missed a line\nLet's try again\n\n");
     }
     else {break;}
     }
-    fwrite(&j, sizeof(j), 1, user_data);
+    fwrite(&l, sizeof(l), 1, user_data);
     fclose(user_data);
 
     printf("Registration completed successfully\nPress any key to continue");
@@ -78,14 +101,10 @@ void registration (void){
     login();
 }
 
+
 void login (void){
     char username[40], password[30]; 
-    FILE *user_data;
-    user_data = fopen("user_data.txt", "r");    
-    if (user_data == NULL){
-        printf("Error opening file\n");
-        exit(1);
-    }
+    FILE *user_data = open_user_data_file("user_data.txt", "r");
 
     struct login l;
 
@@ -97,16 +116,11 @@ void login (void){
     printf("Enter password:\n");
     fgets(password, sizeof(password), stdin);
 
-    while (fread (&l, sizeof(l), 1, user_data)){
-        if (strcmp(username, l.username) == 0 && strcmp(password, l.password) == 0){
-            found = 1;
-            break;
-        }
-    }
+    found = find_user(username, password, user_data);
 
     if (found == 1){
         printf("\nSuccessful login\n");
-        user_log_in(username);
+        user_log_in(username,password);
     } 
     else{
         printf("Incorrect login details\n");
@@ -115,7 +129,7 @@ void login (void){
 }
 
 
-void user_log_in(char username[40]){
+void user_log_in(char *username, char *password){
     int i = 1;
     while (i != 0){
     int option = 0;
@@ -129,12 +143,12 @@ void user_log_in(char username[40]){
             current_auto();
             break;
         case 3: 
-            display_user_data(username);
+            display_user_data(username,password);
             break;
         case 9:
             exit(1);
         default:
-            printf("Sorry, we can do that yet\n");
+            printf("Sorry, we cannot do that yet\n");
 
 
     }
@@ -146,20 +160,16 @@ void to_rent_car(void){printf("a");}
 void current_auto(void){printf("b");}
 
 
-void display_user_data(char username[40]){
+void display_user_data(char *username, char *password)
+{
 
-    FILE *user_data;
-    user_data = fopen("user_data.txt", "r");    
-    if (user_data == NULL){
-        printf("Error opening file\n");
-        exit(1);
-    }
+    FILE *user_data = open_user_data_file("user_data.txt", "r");
 
     struct login l;
     int found = 0; 
 
     while (fread (&l, sizeof(l), 1, user_data)){
-        if (strcmp(username, l.username) == 0){
+        if (strcmp(username, l.username) == 0 && strcmp(password, l.password) == 0){
             found = 1;
             break;
         }
@@ -180,5 +190,4 @@ void display_user_data(char username[40]){
     printf("Press any key to continue\n");
     getchar();
 }
-
 
